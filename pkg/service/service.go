@@ -31,13 +31,8 @@ type ServiceManifest struct {
 }
 
 func (s Service) ProxySpec() string {
-	return fmt.Sprintf(`
-    server {
-        server_name %s;
-        location / {
-          proxy_pass %s:%d;
-        }
-    }`, s.domains(), s.Name, s.Port)
+	serverBlock := "server {\n\tserver_name %s;\n\tlocation / {\n\t\tproxy_pass %s:%d;\n\t}\n}"
+	return fmt.Sprintf(serverBlock, s.domains(), s.Name, s.Port)
 }
 
 func (s Service) DockerRunCmd() []string {
