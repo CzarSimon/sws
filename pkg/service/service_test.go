@@ -27,7 +27,7 @@ func TestDomains(t *testing.T) {
 }
 
 func TestProxySpec(t *testing.T) {
-	expectedProxySpec := "server {\n\tserver_name example.com www.example.com;\n\tlocation / {\n\t\tproxy_pass example-service:8080;\n\t}\n}"
+	expectedProxySpec := "server {\n\tserver_name example.com www.example.com;\n\tlocation / {\n\t\tproxy_pass http://example-service:8080;\n\t}\n}"
 	proxySpec := getTestService().ProxySpec()
 	if proxySpec != expectedProxySpec {
 		t.Errorf(`service.ProxySpec wrong:
@@ -66,7 +66,7 @@ func TestDockerRunCmd(t *testing.T) {
 		"czarsimon/sws/test-image:latest",
 	}
 	s := getTestService()
-	runCmd := s.DockerRunCmd()
+	runCmd := s.RunCmd()
 	if len(runCmd) != len(expectedCmd) {
 		t.Fatalf("service.DockerRunCmd wrong: Expected length: %d, Got: %d",
 			len(expectedCmd), len(runCmd))
@@ -79,7 +79,7 @@ func TestDockerRunCmd(t *testing.T) {
 	}
 	s.VolumeMount = ""
 	s.Env = make([]EnvVar, 0)
-	runCmd = s.DockerRunCmd()
+	runCmd = s.RunCmd()
 	expectedCmd = []string{
 		"docker", "run", "-d", "--restart", "always", "--name", "example-service",
 		"czarsimon/sws/test-image:latest",
