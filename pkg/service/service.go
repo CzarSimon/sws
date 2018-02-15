@@ -36,7 +36,7 @@ type EnvVar struct {
 // ServiceManifest struct matching the a service deployment manifest file.
 type ServiceManifest struct {
 	ApiVersion  string  `yaml:"apiVersion"`
-	Spec        Service `yaml:"spec"`
+	Spec        Interface `yaml:"spec"`
 	DateChanged time.Time
 }
 
