@@ -58,7 +58,7 @@ func TestEnvVars(t *testing.T) {
 	}
 }
 
-func TestDockerRunCmd(t *testing.T) {
+func TestRunCmd(t *testing.T) {
 	expectedCmd := []string{
 		"docker", "run", "-d", "--restart", "always", "--name", "example-service",
 		"-e", "EXAMPLE_KEY=example-value",

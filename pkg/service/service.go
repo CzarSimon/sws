@@ -1,4 +1,3 @@
-// Package service provides a interface and base type for starting and proxying to services.
 package service
 
 import (
@@ -15,6 +14,7 @@ const (
 type Interface interface {
 	ProxySpec() string
 	RunCmd() []string
+	ID() string
 }
 
 // Service holds information to start, identify and proxy traffic to a containarized service.
@@ -34,9 +34,9 @@ type EnvVar struct {
 }
 
 // ServiceManifest struct matching the a service deployment manifest file.
-type ServiceManifest struct {
+type Manifest struct {
 	ApiVersion  string  `yaml:"apiVersion"`
-	Spec        Interface `yaml:"spec"`
+	Spec        Service `yaml:"spec"`
 	DateChanged time.Time
 }
 
@@ -56,6 +56,11 @@ func (s Service) RunCmd() []string {
 		runCmd = append(runCmd, "--mount", s.volumeSpec())
 	}
 	return append(runCmd, s.Image)
+}
+
+// ID returns and identifying string from a service.
+func (s Service) ID() string {
+	return s.Image
 }
 
 // volumeSpec returns argument for hooking up a volume to a container.
