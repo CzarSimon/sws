@@ -1,0 +1,16 @@
+{
+  "apiVersion": "v1",
+  "spec": {
+    "name": "example-service",
+    "port": 8080,
+    "domain": "example.com",
+    "image": "czarsimon/sws/test-image:latest",
+    "volumeMount": "/var/lib/sws/data",
+    "env": [
+      {
+        "name": "EXAMPLE_KEY",
+        "value": "example-value"
+      }
+    ]
+  }
+}

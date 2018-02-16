@@ -19,24 +19,24 @@ type Interface interface {
 
 // Service holds information to start, identify and proxy traffic to a containarized service.
 type Service struct {
-	Name        string   `yaml:"name"`
-	Port        int      `yaml:"port"`
-	Domain      string   `yaml:"domain"`
-	Image       string   `yaml:"image"`
-	VolumeMount string   `yaml:"volumeMount"`
-	Env         []EnvVar `yaml:"env"`
+	Name        string   `yaml:"name" json:"name"`
+	Port        int      `yaml:"port" json:"port"`
+	Domain      string   `yaml:"domain" json:"domain"`
+	Image       string   `yaml:"image" json:"image"`
+	VolumeMount string   `yaml:"volumeMount" json:"volumeMount"`
+	Env         []EnvVar `yaml:"env" json:"env"`
 }
 
 // EnvVar key value pair to pass envionment values to a service.
 type EnvVar struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
+	Name  string `yaml:"name" json:"name"`
+	Value string `yaml:"value" json:"value"`
 }
 
 // ServiceManifest struct matching the a service deployment manifest file.
 type Manifest struct {
-	ApiVersion  string  `yaml:"apiVersion"`
-	Spec        Service `yaml:"spec"`
+	ApiVersion  string  `yaml:"apiVersion" json:"apiVersion"`
+	Spec        Service `yaml:"spec" json:"spec"`
 	DateChanged time.Time
 }
 
