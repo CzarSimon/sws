@@ -2,6 +2,37 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/CzarSimon/go-endpoint"
+  packages = ["."]
+  revision = "939345fbb770b83b60d1ab571cdfdb3a2711b942"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/CzarSimon/httputil"
+  packages = [
+    ".",
+    "auth",
+    "handler"
+  ]
+  revision = "9b82cb54604d7bda881294bd815a77074efc9ada"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "88edab0803230a3898347e77b474f8c1820a1f20"
+
+[[projects]]
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  revision = "6c771bb9887719704b210e87e934f08be014bdb1"
+  version = "v1.6.0"
+
+[[projects]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -10,6 +41,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c39e9119cc91080f9178c39214d6ca06156205351dec2523319554ee3669537e"
+  inputs-digest = "1a6c5e98689cac32529f1ef480586c2e93b45a0b972252cbaca37ddd942dccdc"
   solver-name = "gps-cdcl"
   solver-version = 1
