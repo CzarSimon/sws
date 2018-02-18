@@ -22,8 +22,6 @@ func SetupRoutes(env *Env) *http.ServeMux {
 // validAccessKey checks if an access key is valid.
 func (env *Env) validAccessKey(r *http.Request) bool {
 	authKey := r.Header.Get("Authorization")
-	log.Println(authKey)
-	log.Println(r.Header.Get("Authorization"))
 	accessKey, err := getAccessKey(authKey, env.DB)
 	if err != nil {
 		log.Println(err)
@@ -32,6 +30,7 @@ func (env *Env) validAccessKey(r *http.Request) bool {
 	return accessKey.Valid()
 }
 
+// getAccessKey checks for access key in database and adds validty information.
 func getAccessKey(authKey string, db *sql.DB) (user.AccessKey, error) {
 	var accessKey user.AccessKey
 	query := "SELECT KEY, VALID_TO FROM ACCESS_KEY WHERE KEY=$1"
