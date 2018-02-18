@@ -37,6 +37,7 @@ func SetupServer(env *Env) *http.Server {
 func main() {
 	config := GetConfig()
 	env := SetupEnv(config)
+	defer env.DB.Close()
 
 	server := SetupServer(env)
 

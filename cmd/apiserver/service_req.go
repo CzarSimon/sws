@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/CzarSimon/httputil"
 	"github.com/CzarSimon/sws/pkg/service"
+	"github.com/CzarSimon/sws/pkg/swsutil"
 	"github.com/CzarSimon/sws/pkg/user"
 )
 
@@ -100,12 +100,12 @@ func insertService(svc service.Service, usr user.User, db *sql.DB) error {
 	}
 	err = upsertServiceRecord(svc, usr, tx)
 	if err != nil {
-		rollbackTx(tx)
+		swsutil.RollbackTx(tx)
 		return err
 	}
 	err = upsertEnvVars(svc, usr, tx)
 	if err != nil {
-		rollbackTx(tx)
+		swsutil.RollbackTx(tx)
 		return err
 	}
 	return tx.Commit()
@@ -119,7 +119,7 @@ func upsertServiceRecord(svc service.Service, usr user.User, tx *sql.Tx) error {
 	}
 	defer stmt.Close()
 	_, err = stmt.Exec(
-		svc.Name, svc.Port, svc.Domain, svc.Image, svc.VolumeMount, getNow(), usr.Name)
+		svc.Name, svc.Port, svc.Domain, svc.Image, svc.VolumeMount, swsutil.GetNow(), usr.Name)
 	return err
 }
 
@@ -147,12 +147,12 @@ func scheduleServiceRemoval(svc service.Service, usr user.User, db *sql.DB) erro
 	}
 	err = removeServiceEnvVars(svc.Name, tx)
 	if err != nil {
-		rollbackTx(tx)
+		swsutil.RollbackTx(tx)
 		return err
 	}
 	err = setServiceToInactive(svc.Name, usr.Name, tx)
 	if err != nil {
-		rollbackTx(tx)
+		swsutil.RollbackTx(tx)
 		return err
 	}
 	return tx.Commit()
@@ -165,7 +165,7 @@ func setServiceToInactive(svcName, username string, tx *sql.Tx) error {
 		return err
 	}
 	defer stmt.Close()
-	res, err := stmt.Exec(getNow(), svcName, username)
+	res, err := stmt.Exec(swsutil.GetNow(), svcName, username)
 	if err != nil {
 		return err
 	}
@@ -272,17 +272,4 @@ func ensureRowsAffected(res sql.Result) error {
 		return noRowsAffectedErr
 	}
 	return nil
-}
-
-// rollbackTx attepts to rollback a transaction.
-func rollbackTx(tx *sql.Tx) {
-	err := tx.Rollback()
-	if err != nil {
-		log.Println(err)
-	}
-}
-
-// getNow gets the current UTC timestamp.
-func getNow() time.Time {
-	return time.Now().UTC()
 }

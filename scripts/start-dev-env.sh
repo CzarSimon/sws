@@ -22,7 +22,7 @@ echo "Inserting seed data"
 docker exec -i $DB_NAME psql -U sws confdb < ../resources/test/test-data.sql
 
 APISERVER_PORT="10430"
-APISERVER_VERSION="v0.1"
+APISERVER_VERSION="v0.2"
 docker stop sws-apiserver
 
 docker run -d --name sws-apiserver --rm --network $NETWORK_NAME \
@@ -35,3 +35,4 @@ echo "Waitng 5 seconds for apiserver to be ready"
 sleep 5
 
 curl http://localhost:$APISERVER_PORT/health
+echo ""

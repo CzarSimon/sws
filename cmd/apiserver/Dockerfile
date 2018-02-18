@@ -8,6 +8,7 @@ RUN go get github.com/CzarSimon/httputil \
            github.com/CzarSimon/sws/pkg/user \
            github.com/CzarSimon/sws/pkg/service \
            github.com/CzarSimon/go-endpoint \
+           github.com/CzarSimon/sws/pkg/swsutil \
            github.com/lib/pq
 
 RUN go build
