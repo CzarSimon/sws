@@ -21,7 +21,7 @@ func TestJsonSerialization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("service: Could not serialize to json, Error: %s", err.Error())
 	}
-	expectedStr := `{"name":"example-service","port":8080,"domain":"example.com","image":"czarsimon/sws/test-image:latest","volumeMount":"/var/lib/sws/data","env":[{"name":"EXAMPLE_KEY","value":"example-value"}]}`
+	expectedStr := `{"name":"example-service","port":8080,"domain":"example.com","image":"czarsimon/sws/test-image:latest","volumeMount":"/var/lib/sws/data","env":[{"name":"EXAMPLE_KEY","value":"example-value"}],"active":false}`
 	if string(bytes) != expectedStr {
 		t.Errorf(`service: JSON serialization wrong:
       Expected: %s

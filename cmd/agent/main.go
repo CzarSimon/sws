@@ -38,6 +38,6 @@ func main() {
 	log.Printf("Starting %s with update frequency: %d s.\n",
 		SERVICE_NAME, config.UpdateFreqSeconds)
 
-	gocron.Every(config.UpdateFreqSeconds).Seconds().Do(env.ReconcileServices)
+	gocron.Every(config.UpdateFreqSeconds).Seconds().Do(env.RunStateReconsciliation)
 	<-gocron.Start()
 }

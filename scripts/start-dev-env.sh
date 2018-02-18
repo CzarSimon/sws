@@ -1,5 +1,8 @@
 NETWORK_NAME="sws-dev-net"
-docker network create $NETWORK_NAME --driver bridge
+if [ "$1" = "start-network" ]
+then
+  docker network create $NETWORK_NAME --driver bridge
+fi
 
 # DB config
 DB_NAME="sws-confdb"
@@ -31,8 +34,8 @@ docker run -d --name sws-apiserver --rm --network $NETWORK_NAME \
   -e SWS_CONFDB_HOST=$DB_NAME -e SWS_CONFDB_PASSWORD=$PG_PASSWORD \
   -e SWS_CONFDB_PORT=$DB_PORT czarsimon/sws-apiserver:$APISERVER_VERSION
 
-echo "Waitng 5 seconds for apiserver to be ready"
-sleep 5
+echo "Waitng 2 seconds for apiserver to be ready"
+sleep 2
 
-curl http://localhost:$APISERVER_PORT/health
-echo ""
+APISERVER_HEALTH=$(curl http://localhost:$APISERVER_PORT/health)
+echo "Checking apiserver health: $APISERVER_HEALTH"

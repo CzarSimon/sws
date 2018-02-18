@@ -25,6 +25,7 @@ type Service struct {
 	Image       string   `yaml:"image" json:"image"`
 	VolumeMount string   `yaml:"volumeMount" json:"volumeMount"`
 	Env         []EnvVar `yaml:"env" json:"env"`
+	Active      bool     `yaml:"active" json:"active"`
 }
 
 // EnvVar key value pair to pass envionment values to a service.

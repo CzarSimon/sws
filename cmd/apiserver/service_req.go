@@ -98,6 +98,11 @@ func insertService(svc service.Service, usr user.User, db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+	err = removeServiceEnvVars(svc.Name, tx)
+	if err != nil {
+		swsutil.RollbackTx(tx)
+		return err
+	}
 	err = upsertServiceRecord(svc, usr, tx)
 	if err != nil {
 		swsutil.RollbackTx(tx)
