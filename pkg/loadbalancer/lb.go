@@ -19,10 +19,10 @@ type LoadBalancer struct {
 }
 
 // RunCmd creates a docker run command for a proxy based on its attributes.
-func (lb LoadBalancer) RunCmd() []string {
+func (lb LoadBalancer) RunCmd(network string) []string {
 	portMap := fmt.Sprintf("%d:%d", HttpPort, HttpPort)
 	return []string{
-		"docker", "run", "-d", "-p", portMap, "--name", lb.Name, lb.Image,
+		"docker", "run", "-d", "-p", portMap, "--network", network, "--name", lb.Name, lb.Image,
 	}
 }
 

@@ -13,7 +13,7 @@ const (
 // Interface service interface to specify service types.
 type Interface interface {
 	ProxySpec() string
-	RunCmd() []string
+	RunCmd(string) []string
 	ID() string
 }
 
@@ -48,9 +48,9 @@ func (s Service) ProxySpec() string {
 }
 
 // DockerRunCmd creates a docker run command for a service based on its attributes.
-func (s Service) RunCmd() []string {
+func (s Service) RunCmd(network string) []string {
 	runCmd := []string{
-		"docker", "run", "-d", "--restart", "always", "--name", s.Name,
+		"docker", "run", "-d", "--restart", "always", "--network", network, "--name", s.Name,
 	}
 	runCmd = append(runCmd, s.envVars()...)
 	if s.VolumeMount != "" {

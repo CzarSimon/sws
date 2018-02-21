@@ -75,13 +75,13 @@ func TestEnvVars(t *testing.T) {
 
 func TestRunCmd(t *testing.T) {
 	expectedCmd := []string{
-		"docker", "run", "-d", "--restart", "always", "--name", "example-service",
-		"-e", "EXAMPLE_KEY=example-value",
+		"docker", "run", "-d", "--restart", "always", "--network", "sws-net",
+		"--name", "example-service", "-e", "EXAMPLE_KEY=example-value",
 		"--mount", "source=example-service_volume,target=/var/lib/sws/data",
 		"czarsimon/sws/test-image:latest",
 	}
 	s := getTestService()
-	runCmd := s.RunCmd()
+	runCmd := s.RunCmd("sws-net")
 	if len(runCmd) != len(expectedCmd) {
 		t.Fatalf("service.DockerRunCmd wrong: Expected length: %d, Got: %d",
 			len(expectedCmd), len(runCmd))
@@ -94,10 +94,10 @@ func TestRunCmd(t *testing.T) {
 	}
 	s.VolumeMount = ""
 	s.Env = make([]EnvVar, 0)
-	runCmd = s.RunCmd()
+	runCmd = s.RunCmd("sws-net")
 	expectedCmd = []string{
-		"docker", "run", "-d", "--restart", "always", "--name", "example-service",
-		"czarsimon/sws/test-image:latest",
+		"docker", "run", "-d", "--restart", "always", "--network", "sws-net",
+		"--name", "example-service", "czarsimon/sws/test-image:latest",
 	}
 	if len(runCmd) != len(expectedCmd) {
 		t.Fatalf("service.DockerRunCmd wrong: Expected length: %d, Got: %d",

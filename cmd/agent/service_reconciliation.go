@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/CzarSimon/sws/pkg/service"
+	"github.com/CzarSimon/sws/pkg/swsutil"
 )
 
 var (
@@ -31,24 +35,113 @@ func (env *Env) RunStateReconsciliation() {
 
 // reconcileState performs service reconciliation.
 func (env *Env) reconcileState() error {
-	return env.reconcileServices()
+	tx, err := env.DB.Begin()
+	if err != nil {
+		return err
+	}
+	err = env.reconcileServices(tx)
+	if err != nil {
+		swsutil.RollbackTx(tx)
+		return err
+	}
+	return tx.Commit()
 }
 
 // reconcileServices reconciles the state of running services to state configuration.
-func (env *Env) reconcileServices() error {
-	services, err := getUpdatedServies(env.Agent.LastUpdated, env.DB)
+func (env *Env) reconcileServices(tx *sql.Tx) error {
+	services, err := getUpdatedServies(env.Agent.LastUpdated, tx)
 	if err != nil {
 		return err
 	}
 	for i, svc := range services {
 		fmt.Printf("%d. - %v\n", i, svc)
+		err = stopService(svc, tx)
+		if err != nil {
+			log.Println(err)
+		}
+		err = startService(svc)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 	}
 	return nil
 }
 
+// stopService stops service and removes inactive from the database.
+func stopService(svc service.Service, tx *sql.Tx) error {
+	msg, err := runShellCommand("docker", "stop", svc.Name)
+	if err != nil && !noSuchContainer(msg) {
+		return err
+	}
+	msg, err = runShellCommand("docker", "rm", svc.Name)
+	if err != nil && !noSuchContainer(msg) {
+		return err
+	}
+	if !svc.Active {
+		err = removeServiceFromDB(svc.Name, tx)
+		if err != nil {
+			return err
+		}
+	}
+	log.Printf("Stopped service \"%s\"\n", svc.Name)
+	return nil
+}
+
+// removeServiceFromDB removes records of a service from the database.
+func removeServiceFromDB(svcName string, tx *sql.Tx) error {
+	envStmt, err := tx.Prepare("DELETE FROM ENV WHERE SERVICE = $1")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer envStmt.Close()
+	_, err = envStmt.Exec(svcName)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	svcStmt, err := tx.Prepare("DELETE FROM SERVICE WHERE NAME = $1")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer svcStmt.Close()
+	_, err = svcStmt.Exec(svcName)
+	return err
+}
+
+// startService starts the supplied service if active.
+func startService(svc service.Service) error {
+	if !svc.Active {
+		log.Printf("Inactive service: \"%s\" not restarted\n", svc.Name)
+		return nil
+	}
+	runCmd := svc.RunCmd()
+	_, err := runShellCommand(runCmd[0], runCmd[1:]...)
+	if err != nil {
+		return err
+	}
+	log.Printf("Started service \"%s\"\n", svc.Name)
+	return nil
+}
+
+// runShellCommand executes a command against the os.
+func runShellCommand(main string, args ...string) (string, error) {
+	cmd := exec.Command(main, args...)
+	var out, errOut bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &errOut
+	err := cmd.Run()
+	if err != nil {
+		return errOut.String(), err
+	}
+	return out.String(), nil
+}
+
 // getUpdatedServies gets the list of updated services since last reconciliation.
-func getUpdatedServies(fromTime time.Time, db *sql.DB) ([]service.Service, error) {
-	rows, err := db.Query(listUpdatedServiceQuery, fromTime)
+func getUpdatedServies(fromTime time.Time, tx *sql.Tx) ([]service.Service, error) {
+	rows, err := tx.Query(listUpdatedServiceQuery, fromTime)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +151,7 @@ func getUpdatedServies(fromTime time.Time, db *sql.DB) ([]service.Service, error
 		return nil, err
 	}
 	for i, svc := range services {
-		services[i].Env, err = getServiceEnvVars(svc.Name, db)
+		services[i].Env, err = getServiceEnvVars(svc.Name, tx)
 		if err != nil {
 			return nil, err
 		}
@@ -82,8 +175,8 @@ func constructServiceList(rows *sql.Rows) ([]service.Service, error) {
 }
 
 // getServiceEnvVars gets the environment varables of a service.
-func getServiceEnvVars(serviceName string, db *sql.DB) ([]service.EnvVar, error) {
-	rows, err := db.Query("SELECT NAME, VALUE FROM ENV WHERE SERVICE = $1", serviceName)
+func getServiceEnvVars(serviceName string, tx *sql.Tx) ([]service.EnvVar, error) {
+	rows, err := tx.Query("SELECT NAME, VALUE FROM ENV WHERE SERVICE = $1", serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -112,4 +205,9 @@ func getUpdatedServiesQuery() string {
 	return `
 		SELECT NAME, PORT, DOMAIN, IMAGE, VOLUME_MOUNT, ACTIVE FROM SERVICE
 			WHERE DATE_CHANGED > $1`
+}
+
+// noSuchContainer checks if an error message contains "no such container".
+func noSuchContainer(errorMsg string) bool {
+	return strings.Contains(errorMsg, "No such container")
 }

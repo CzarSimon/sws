@@ -25,7 +25,7 @@ echo "Inserting seed data"
 docker exec -i $DB_NAME psql -U sws confdb < ../resources/test/test-data.sql
 
 APISERVER_PORT="10430"
-APISERVER_VERSION="v0.2"
+APISERVER_VERSION="v0.3"
 docker stop sws-apiserver
 
 docker run -d --name sws-apiserver --rm --network $NETWORK_NAME \
@@ -39,3 +39,6 @@ sleep 2
 
 APISERVER_HEALTH=$(curl http://localhost:$APISERVER_PORT/health)
 echo "Checking apiserver health: $APISERVER_HEALTH"
+
+# List running sws services
+docker ps | grep sws

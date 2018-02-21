@@ -23,10 +23,10 @@ type Proxy struct {
 }
 
 // RunCmd creates a docker run command for a proxy based on its attributes.
-func (p Proxy) RunCmd() []string {
+func (p Proxy) RunCmd(network string) []string {
 	portMap := fmt.Sprintf("%d:%d", p.Port, p.Port)
 	return []string{
-		"docker", "run", "-d", "-p", portMap, "--name", p.Name, p.Image,
+		"docker", "run", "-d", "-p", portMap, "--network", network, "--name", p.Name, p.Image,
 	}
 }
 

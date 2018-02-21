@@ -22,8 +22,11 @@ func (env *Env) BootupAgent() error {
 	if err != nil {
 		return err
 	}
-	err = env.upsertAgentMetadata(true)
-	return err
+	err = env.reconcileState()
+	if err != nil {
+		return nil
+	}
+	return env.upsertAgentMetadata(true)
 }
 
 // setupAgentMetadata initalizes agent metadata.
