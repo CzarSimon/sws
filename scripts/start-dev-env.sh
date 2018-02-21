@@ -1,17 +1,31 @@
-NETWORK_NAME="sws-dev-net"
+services=("sws-loadbalancer" "sws-proxy-1" "sws-proxy-2" "sws-apiserver" "sws-confdb")
+for service in "${services[@]}"
+do
+  docker stop $service
+  docker rm $service
+done
+
+NETWORK_NAME="sws-net"
 if [ "$1" = "start-network" ]
 then
   docker network create $NETWORK_NAME --driver bridge
 fi
 
-# DB config
+health_check() {
+  name=$1
+  uri=$2
+  echo "Health checking: $name"
+  curl $uri
+  echo ""
+}
+
+# sws-confdb commands
 DB_NAME="sws-confdb"
 DB_PORT="5432"
 DB_USER="sws"
 DATABASE="confdb"
-docker stop $DB_NAME
 
-docker run -d --name $DB_NAME -p $DB_PORT:$DB_PORT --rm --network $NETWORK_NAME \
+docker run -d --name $DB_NAME -p $DB_PORT:$DB_PORT --network $NETWORK_NAME \
   -e POSTGRES_USER=$DB_USER -e POSTGRES_DB=$DATABASE -e POSTGRES_PASSWORD=$PG_PASSWORD \
   postgres:10.2-alpine
 
@@ -24,11 +38,11 @@ docker exec -i $DB_NAME psql -U sws confdb < ../resources/db-schema.sql
 echo "Inserting seed data"
 docker exec -i $DB_NAME psql -U sws confdb < ../resources/test/test-data.sql
 
+# sws-apiserver commands
 APISERVER_PORT="10430"
 APISERVER_VERSION="v0.3"
-docker stop sws-apiserver
 
-docker run -d --name sws-apiserver --rm --network $NETWORK_NAME \
+docker run -d --name sws-apiserver --network $NETWORK_NAME \
   -p $APISERVER_PORT:$APISERVER_PORT -e SWS_API_SERVER_PORT=$APISERVER_PORT \
   -e SWS_CONFDB_NAME=$DATABASE -e SWS_CONFDB_USER=$DB_USER \
   -e SWS_CONFDB_HOST=$DB_NAME -e SWS_CONFDB_PASSWORD=$PG_PASSWORD \
@@ -36,9 +50,26 @@ docker run -d --name sws-apiserver --rm --network $NETWORK_NAME \
 
 echo "Waitng 2 seconds for apiserver to be ready"
 sleep 2
+health_check "sws-apiserver" "http://localhost:$APISERVER_PORT/health"
 
-APISERVER_HEALTH=$(curl http://localhost:$APISERVER_PORT/health)
-echo "Checking apiserver health: $APISERVER_HEALTH"
+# sws-proxy commands
+proxies=("sws-proxy-1" "sws-proxy-2")
+for proxy in "${proxies[@]}"
+do
+  docker run -d --name $proxy --network $NETWORK_NAME czarsimon/sws-proxy:init
+done
+
+echo "Waitng 2 seconds for proxies to be ready"
+sleep 2
+
+# sws-loadbalancer commands
+LB_PORT="81"
+docker run -d --name sws-loadbalancer --network $NETWORK_NAME \
+  -p $LB_PORT:$LB_PORT czarsimon/sws-lb:dev
+
+echo "Waitng 2 seconds for sws-loadbalancer to be ready"
+sleep 2
+health_check "sws-loadbalancer" "http://localhost:$LB_PORT/sws-lb/health"
 
 # List running sws services
 docker ps | grep sws

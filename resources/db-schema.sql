@@ -45,3 +45,10 @@ CREATE TABLE AGENT_METADATA(
 );
 
 INSERT INTO INGRESS_TYPES(TYPE) VALUES ('PROXY'), ('LOADBALANCER');
+
+INSERT INTO INGRESS_RESOURCE(
+  NAME, PORT, IMAGE, HEALTH_ROUTE, ROLE
+) VALUES
+( 'sws-loadbalancer', 80, 'czarsimon/sws-lb:v3', '/sws-lb/health', 'LOADBALANCER'),
+( 'sws-proxy-1', 18080, 'czarsimon/sws-proxy:init', '/sws-proxy/health', 'PROXY'),
+( 'sws-proxy-2', 18080, 'czarsimon/sws-proxy:init', '/sws-proxy/health', 'PROXY')

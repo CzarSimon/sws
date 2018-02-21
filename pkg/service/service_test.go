@@ -42,12 +42,10 @@ func TestDomains(t *testing.T) {
 }
 
 func TestProxySpec(t *testing.T) {
-	expectedProxySpec := "server {\n\tserver_name example.com www.example.com;\n\tlocation / {\n\t\tproxy_pass http://example-service:8080;\n\t}\n}"
+	expectedProxySpec := "location /example.com/ {\n\tproxy_pass http://example-service:8080/;\n}"
 	proxySpec := getTestService().ProxySpec()
 	if proxySpec != expectedProxySpec {
-		t.Errorf(`service.ProxySpec wrong:
-      Expected: %s
-      Got: %s`, expectedProxySpec, proxySpec)
+		t.Errorf("service.ProxySpec wrong.\nExpected: \n%s\nGot:\n%s", expectedProxySpec, proxySpec)
 	}
 }
 

@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/CzarSimon/sws/pkg/service"
@@ -17,12 +16,11 @@ func TestProxySpec(t *testing.T) {
 
 func TestRunCmd(t *testing.T) {
 	expectedCmd := []string{
-		"docker", "run", "-d", "-p", "28080:28080", "--network", "sws-net",
-		"--name", "proxy-1", "sws/proxy:c03d2fbe1fc4d499d51a89b30c35e9f7",
+		"docker", "run", "-d", "--network", "sws-net",
+		"--name", "proxy-1", "sws/proxy:fce5fe1ac0611f5ac0f9305abf77cfa7",
 	}
 	p := getTestProxy()
 	runCmd := p.RunCmd("sws-net")
-	fmt.Println(p.Definition)
 	if len(runCmd) != len(expectedCmd) {
 		t.Fatalf("proxy.RunCmd wrong: Expected length: %d, Got: %d",
 			len(expectedCmd), len(runCmd))

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"strings"
 
 	"github.com/CzarSimon/sws/pkg/service"
 )
@@ -24,9 +25,8 @@ type Proxy struct {
 
 // RunCmd creates a docker run command for a proxy based on its attributes.
 func (p Proxy) RunCmd(network string) []string {
-	portMap := fmt.Sprintf("%d:%d", p.Port, p.Port)
 	return []string{
-		"docker", "run", "-d", "-p", portMap, "--network", network, "--name", p.Name, p.Image,
+		"docker", "run", "-d", "--network", network, "--name", p.Name, p.Image,
 	}
 }
 
@@ -55,7 +55,14 @@ func New(name string, port int, services []service.Service) Proxy {
 func buildDefinition(services []service.Service) string {
 	var def bytes.Buffer
 	for _, s := range services {
-		def.WriteString(fmt.Sprintf("%s\n\n", s.ProxySpec()))
+		def.WriteString(fmt.Sprintf("%s", indentProxySpec(s.ProxySpec())))
 	}
 	return def.String()
+}
+
+// indentProxySpec indentates a service proxy spec to align with the full proxy spec.
+func indentProxySpec(source string) string {
+	doubleIndent := strings.Replace(source, "\t", "\t\t\t", 1)
+	indentedClosingBracket := strings.Replace(doubleIndent, "}", "\t\t}", 1)
+	return fmt.Sprintf("\t\t%s\n\n", indentedClosingBracket)
 }

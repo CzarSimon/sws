@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -70,11 +68,11 @@ func (env *Env) reconcileServices(tx *sql.Tx) error {
 
 // stopService stops service and removes inactive from the database.
 func stopService(svc service.Service, tx *sql.Tx) error {
-	msg, err := runShellCommand("docker", "stop", svc.Name)
+	msg, err := swsutil.RunShellCommand("docker", "stop", svc.Name)
 	if err != nil && !noSuchContainer(msg) {
 		return err
 	}
-	msg, err = runShellCommand("docker", "rm", svc.Name)
+	msg, err = swsutil.RunShellCommand("docker", "rm", svc.Name)
 	if err != nil && !noSuchContainer(msg) {
 		return err
 	}
@@ -117,26 +115,13 @@ func startService(svc service.Service) error {
 		log.Printf("Inactive service: \"%s\" not restarted\n", svc.Name)
 		return nil
 	}
-	runCmd := svc.RunCmd()
-	_, err := runShellCommand(runCmd[0], runCmd[1:]...)
+	runCmd := svc.RunCmd(NetworkName)
+	_, err := swsutil.RunShellCommand(runCmd[0], runCmd[1:]...)
 	if err != nil {
 		return err
 	}
 	log.Printf("Started service \"%s\"\n", svc.Name)
 	return nil
-}
-
-// runShellCommand executes a command against the os.
-func runShellCommand(main string, args ...string) (string, error) {
-	cmd := exec.Command(main, args...)
-	var out, errOut bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &errOut
-	err := cmd.Run()
-	if err != nil {
-		return errOut.String(), err
-	}
-	return out.String(), nil
 }
 
 // getUpdatedServies gets the list of updated services since last reconciliation.

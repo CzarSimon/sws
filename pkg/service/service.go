@@ -43,8 +43,8 @@ type Manifest struct {
 
 // ProxySpec creates an server block in Nginx format in order to proxy traffic to a service.
 func (s Service) ProxySpec() string {
-	serverBlock := "server {\n\tserver_name %s;\n\tlocation / {\n\t\tproxy_pass http://%s:%d;\n\t}\n}"
-	return fmt.Sprintf(serverBlock, s.domains(), s.Name, s.Port)
+	serverBlock := "location /%s/ {\n\tproxy_pass http://%s:%d/;\n}"
+	return fmt.Sprintf(serverBlock, s.Domain, s.Name, s.Port)
 }
 
 // DockerRunCmd creates a docker run command for a service based on its attributes.
