@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -12,7 +13,9 @@ import (
 )
 
 var (
-	listUpdatedServiceQuery = getUpdatedServiesQuery()
+	errNoUpdatedServices        = errors.New("No updated services")
+	listUpdatedServiceQuery     = getUpdatedServiesQuery()
+	checkIfServicesUpdatedQuery = getCheckIfServicesUpdatedQuery()
 )
 
 // RunStateReconsciliation triggers reconciliation of services and proxy state.
@@ -20,10 +23,9 @@ func (env *Env) RunStateReconsciliation() {
 	if env.Agent.Locked {
 		return
 	}
-	log.Println("Reconciling services")
 	env.Agent.Lock()
 	err := env.reconcileState()
-	if err != nil {
+	if err != nil && err != errNoUpdatedServices {
 		log.Println(err)
 		env.Agent.Unlock()
 		return
@@ -33,11 +35,20 @@ func (env *Env) RunStateReconsciliation() {
 
 // reconcileState performs service reconciliation.
 func (env *Env) reconcileState() error {
+	err := env.updatedServicesExist()
+	if err != nil {
+		return err
+	}
 	tx, err := env.DB.Begin()
 	if err != nil {
 		return err
 	}
-	err = env.reconcileServices(tx)
+	err = reconcileServices(tx, env.Agent.LastUpdated)
+	if err != nil {
+		swsutil.RollbackTx(tx)
+		return err
+	}
+	err = updateProxies(tx)
 	if err != nil {
 		swsutil.RollbackTx(tx)
 		return err
@@ -45,9 +56,24 @@ func (env *Env) reconcileState() error {
 	return tx.Commit()
 }
 
+// updatedServicesExist checks for any updates services since last update.
+func (env *Env) updatedServicesExist() error {
+	var count int
+	err := env.DB.QueryRow(
+		checkIfServicesUpdatedQuery, env.Agent.LastUpdated).Scan(&count)
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		log.Println(errNoUpdatedServices)
+		return errNoUpdatedServices
+	}
+	return nil
+}
+
 // reconcileServices reconciles the state of running services to state configuration.
-func (env *Env) reconcileServices(tx *sql.Tx) error {
-	services, err := getUpdatedServies(env.Agent.LastUpdated, tx)
+func reconcileServices(tx *sql.Tx, fromTime time.Time) error {
+	services, err := getUpdatedServies(fromTime, tx)
 	if err != nil {
 		return err
 	}
@@ -68,12 +94,9 @@ func (env *Env) reconcileServices(tx *sql.Tx) error {
 
 // stopService stops service and removes inactive from the database.
 func stopService(svc service.Service, tx *sql.Tx) error {
-	msg, err := swsutil.RunShellCommand("docker", "stop", svc.Name)
-	if err != nil && !noSuchContainer(msg) {
-		return err
-	}
-	msg, err = swsutil.RunShellCommand("docker", "rm", svc.Name)
-	if err != nil && !noSuchContainer(msg) {
+	msg, err := stopAndRemoveContainer(svc.Name)
+	if err != nil {
+		log.Println(msg)
 		return err
 	}
 	if !svc.Active {
@@ -84,6 +107,18 @@ func stopService(svc service.Service, tx *sql.Tx) error {
 	}
 	log.Printf("Stopped service \"%s\"\n", svc.Name)
 	return nil
+}
+
+func stopAndRemoveContainer(name string) (string, error) {
+	msg, err := swsutil.RunShellCommand("docker", "stop", name)
+	if err != nil && !noSuchContainer(msg) {
+		return msg, err
+	}
+	msg, err = swsutil.RunShellCommand("docker", "rm", name)
+	if err != nil && !noSuchContainer(msg) {
+		return msg, err
+	}
+	return fmt.Sprintf("Removed container: %s", name), nil
 }
 
 // removeServiceFromDB removes records of a service from the database.
@@ -190,6 +225,12 @@ func getUpdatedServiesQuery() string {
 	return `
 		SELECT NAME, PORT, DOMAIN, IMAGE, VOLUME_MOUNT, ACTIVE FROM SERVICE
 			WHERE DATE_CHANGED > $1`
+}
+
+// getCheckIfServicesUpdatedQuery gets the query to check if serices has been
+// updated since a specified time.
+func getCheckIfServicesUpdatedQuery() string {
+	return "SELECT COUNT(*) FROM SERVICE WHERE DATE_CHANGED > $1;"
 }
 
 // noSuchContainer checks if an error message contains "no such container".

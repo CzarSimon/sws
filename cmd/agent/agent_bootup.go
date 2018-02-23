@@ -13,7 +13,7 @@ const (
 
 // Common infrastructure variables
 var (
-	ContainerFolder = filepath.Join(os.Getenv("HOME"), ".sws", "containers")
+	ProxyFolder = filepath.Join(os.Getenv("HOME"), ".sws", "proxy")
 )
 
 // BootupAgent starts the sws agent and ensures the host is ready to set up and serve services.
@@ -21,10 +21,6 @@ func (env *Env) BootupAgent() error {
 	err := env.setupAgentMetadata()
 	if err != nil {
 		return err
-	}
-	err = env.reconcileState()
-	if err != nil {
-		return nil
 	}
 	return env.upsertAgentMetadata(true)
 }

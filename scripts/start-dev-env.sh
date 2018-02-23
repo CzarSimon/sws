@@ -1,8 +1,10 @@
 services=("sws-loadbalancer" "sws-proxy-1" "sws-proxy-2" "sws-apiserver" "sws-confdb")
 for service in "${services[@]}"
 do
-  docker stop $service
-  docker rm $service
+  stop_result=$(docker stop $service)
+  echo "Stopping: $stop_result"
+  rm_result=$(docker rm $service)
+  echo "Removing: $rm_result"
 done
 
 NETWORK_NAME="sws-net"
@@ -73,3 +75,20 @@ health_check "sws-loadbalancer" "http://localhost:$LB_PORT/sws-lb/health"
 
 # List running sws services
 docker ps | grep sws
+
+create_dir_if_missing() {
+  DIR=$1
+  if [ ! -d "$DIR" ]
+  then
+    mkdir $DIR
+  fi
+}
+
+SWS_DIR="$HOME/.sws"
+create_dir_if_missing $SWS_DIR
+
+SWS_PROXY_DIR="$SWS_DIR/proxy"
+create_dir_if_missing $SWS_PROXY_DIR
+
+rm $SWS_PROXY_DIR/Dockerfile
+echo "FROM nginx:1.13.8-alpine\nWORKDIR /etc/nginx\n\nCOPY nginx.conf nginx.conf" > $SWS_PROXY_DIR/Dockerfile

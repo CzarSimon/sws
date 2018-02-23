@@ -29,15 +29,13 @@ func main() {
 	config := GetConfig()
 	env := SetupEnv(config)
 	defer env.DB.Close()
-	err := env.BootupAgent()
 
+	err := env.BootupAgent()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Starting %s with update frequency: %d s.\n",
-		SERVICE_NAME, config.UpdateFreqSeconds)
-
+	log.Printf("Starting %s with update frequency: %d s.\n", SERVICE_NAME, config.UpdateFreqSeconds)
 	gocron.Every(config.UpdateFreqSeconds).Seconds().Do(env.RunStateReconsciliation)
 	<-gocron.Start()
 }
