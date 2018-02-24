@@ -199,12 +199,10 @@ func healthCheckProxy(candidate proxy.Proxy) error {
 }
 
 func updateProxyPairInDB(pair proxy.Pair, tx *sql.Tx) error {
-	fmt.Printf("Primary: %+v\n", pair.Primary)
 	err := updateProxyInDB(pair.Primary, tx)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Secondary: %+v\n", pair.Secondary)
 	return updateProxyInDB(pair.Secondary, tx)
 }
 

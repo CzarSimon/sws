@@ -1,2 +1,5 @@
 vendor/
 pkg/proxy/test/*
+cmd/agent/agent
+cmd/apiserver/apiserver
+cmd/cli/sws/sws
