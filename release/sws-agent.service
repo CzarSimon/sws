@@ -5,6 +5,12 @@ After=docker.service
 Requires=docker.service
 
 [Service]
+Environment="SWS_CONFDB_NAME=confdb"
+Environment="SWS_CONFDB_USER=sws"
+Environment="SWS_CONFDB_HOST=localhost"
+Environment="SWS_CONFDB_PORT=5432"
+Environment="SWS_CONFDB_PASSWORD={$SWS_CONFDB_PASSWORD}"
+User={$USER}
 ExecStart=/usr/local/sbin/sws-agent/sws-agent
 Restart=on-failure
 RestartSec=30

@@ -44,11 +44,14 @@ DB_PORT="5432"
 DB_USER="sws"
 DATABASE="confdb"
 
+DB_VOLUME="sws-confdb-volume"
+docker volume create $DB_VOLUME
+
 echo "Starting $DB_NAME"
 docker run -d --name $DB_NAME -p $DB_PORT:$DB_PORT --network $NETWORK_NAME \
   -e POSTGRES_USER=$DB_USER -e POSTGRES_DB=$DATABASE \
   -e POSTGRES_PASSWORD=$SWS_CONFDB_PASSWORD \
-  --volume source=sws-confdb-volume,target=/var/lib/postgresql/data \
+  --mount source=$DB_VOLUME,target=/var/lib/postgresql/data \
   postgres:10.2-alpine
 
 echo "Waitng 5 seconds for $DB_NAME to be ready"
@@ -64,7 +67,7 @@ SWS_VERSION="v0.4"
 docker run -d --name sws-apiserver --network $NETWORK_NAME \
   -p $APISERVER_PORT:$APISERVER_PORT -e SWS_API_SERVER_PORT=$APISERVER_PORT \
   -e SWS_CONFDB_NAME=$DATABASE -e SWS_CONFDB_USER=$DB_USER \
-  -e SWS_CONFDB_HOST=$DB_NAME -e SWS_CONFDB_PASSWORD=$PG_PASSWORD \
+  -e SWS_CONFDB_HOST=$DB_NAME -e SWS_CONFDB_PASSWORD=$SWS_CONFDB_PASSWORD \
   -e SWS_CONFDB_PORT=$DB_PORT czarsimon/sws-apiserver:$SWS_VERSION
 
 echo "Waitng 2 seconds for apiserver to be ready"
@@ -100,11 +103,13 @@ SWS_PROXY_DIR="$SWS_DIR/proxy"
 create_dir_if_missing $SWS_PROXY_DIR
 
 rm $SWS_PROXY_DIR/Dockerfile
-echo "FROM nginx:1.13.8-alpine\nWORKDIR /etc/nginx\n\nCOPY nginx.conf nginx.conf" > $SWS_PROXY_DIR/Dockerfile
+cp Dockerfile $SWS_PROXY_DIR/Dockerfile
 
 SWS_AGENT_DIR="/usr/local/sbin/sws-agent"
 create_dir_if_missing $SWS_AGENT_DIR
-mv sws-agent $SWS_AGENT_DIR/sws-agent
-mv sws-agent.service /etc/systemd/system/sws-agent.service
+cp sws-agent $SWS_AGENT_DIR/sws-agent
+
+python subsitute_service_values.py
+cp sws-agent.service /etc/systemd/system/sws-agent.service
 systemctl enable sws-agent.service
 systemctl start sws-agent.service
