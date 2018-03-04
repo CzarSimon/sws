@@ -48,11 +48,10 @@ DB_VOLUME="sws-confdb-volume"
 docker volume create $DB_VOLUME
 
 echo "Starting $DB_NAME"
-docker run -d --name $DB_NAME -p $DB_PORT:$DB_PORT --network $NETWORK_NAME \
-  -e POSTGRES_USER=$DB_USER -e POSTGRES_DB=$DATABASE \
-  -e POSTGRES_PASSWORD=$SWS_CONFDB_PASSWORD \
-  --mount source=$DB_VOLUME,target=/var/lib/postgresql/data \
-  postgres:10.2-alpine
+docker run -d --name $DB_NAME -p $DB_PORT:$DB_PORT --restart always \
+  --network $NETWORK_NAME -e POSTGRES_USER=$DB_USER \
+  -e POSTGRES_DB=$DATABASE -e POSTGRES_PASSWORD=$SWS_CONFDB_PASSWORD \
+  --mount source=$DB_VOLUME,target=/var/lib/postgresql/data postgres:10.2-alpine
 
 echo "Waitng 5 seconds for $DB_NAME to be ready"
 sleep 5
@@ -62,9 +61,9 @@ docker exec -i $DB_NAME psql -U $DB_USER $DATABASE < db-schema.sql
 
 # sws-apiserver commands
 APISERVER_PORT="10430"
-SWS_VERSION="v0.4"
+SWS_VERSION="v0.5"
 
-docker run -d --name sws-apiserver --network $NETWORK_NAME \
+docker run -d --name sws-apiserver --network $NETWORK_NAME --restart always \
   -p $APISERVER_PORT:$APISERVER_PORT -e SWS_API_SERVER_PORT=$APISERVER_PORT \
   -e SWS_CONFDB_NAME=$DATABASE -e SWS_CONFDB_USER=$DB_USER \
   -e SWS_CONFDB_HOST=$DB_NAME -e SWS_CONFDB_PASSWORD=$SWS_CONFDB_PASSWORD \
@@ -78,7 +77,7 @@ health_check "sws-apiserver" "http://localhost:$APISERVER_PORT/health"
 proxies=("sws-proxy-1" "sws-proxy-2")
 for proxy in "${proxies[@]}"
 do
-  docker run -d --name $proxy --network $NETWORK_NAME czarsimon/sws-proxy:init
+  docker run -d --name $proxy --network $NETWORK_NAME --restart always czarsimon/sws-proxy:init
 done
 
 echo "Waitng 2 seconds for proxies to be ready"
@@ -86,7 +85,7 @@ sleep 2
 
 # sws-loadbalancer commands
 LB_PORT="80"
-docker run -d --name sws-loadbalancer --network $NETWORK_NAME \
+docker run -d --name sws-loadbalancer --network $NETWORK_NAME --restart always \
   -p $LB_PORT:$LB_PORT czarsimon/sws-lb:$SWS_VERSION
 
 echo "Waitng 2 seconds for sws-loadbalancer to be ready"
